@@ -364,4 +364,4 @@ FodyWeavers.xsd
 
 
 #Test data ignore
-/TestData
+TestData/
