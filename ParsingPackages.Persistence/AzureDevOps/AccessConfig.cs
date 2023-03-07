@@ -3,7 +3,6 @@ namespace ParsingPackages.Persistence.AzureDevOps
 {
     public class AccessConfig
     {
-        private const string defaultFileName = "accessconfig.txt";
         public string userName { get; set; }
         public string accessToken { get; set; }
         public string server { get; set; }
@@ -11,11 +10,10 @@ namespace ParsingPackages.Persistence.AzureDevOps
 
         public AccessConfig()
         {
-            string[] file = getAccessConfigFromFile(defaultFileName);
-            userName = file[0].Trim();
-            accessToken = file[1].Trim();
-            server = file[2].Trim();
-            collection = file[3].Trim();
+            userName = "";
+            accessToken = "";
+            server = "";
+            collection = "";
         }
         public AccessConfig(string fileName) 
         {

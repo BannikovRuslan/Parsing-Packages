@@ -48,6 +48,15 @@ namespace ParsingPackages.Statistics
             updateGroupsStatistic(filePath, fileData);
         }
 
+        /// <summary>
+        /// Обновление статистики по конкретному проекту по данным из соответствующего файла
+        /// </summary>
+        /// <param name="filePath">путь к файлу в репозитории</param>
+        /// <param name="accessConfig">параметры доступа в Azure DevOps</param>
+        /// <param name="projectId">идентификатор / имя проекта</param>
+        /// <param name="repositoryId">идентификатор / имя репозитория</param>
+        /// <param name="objectId">идентификатор файла</param>
+        /// <returns></returns>
         async public Task updateProjectFileStatistic(string filePath,
             AccessConfig accessConfig, string projectId, string repositoryId, string objectId) 
         {
@@ -65,6 +74,11 @@ namespace ParsingPackages.Statistics
             updateGroupsStatistic(filePath, fileData);
         }
 
+        /// <summary>
+        /// Обновление статистики по группе в зависимости от файла пакета
+        /// </summary>
+        /// <param name="filePath">имя файла</param>
+        /// <param name="fileData">содержимое файла</param>
         private void updateGroupsStatistic(string filePath, string fileData) 
         {
             foreach (string groupExtension in groupExtensions)

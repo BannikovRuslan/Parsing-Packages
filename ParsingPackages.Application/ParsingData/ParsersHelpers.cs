@@ -78,9 +78,7 @@ public static class ParsersHelpers
             new Logger().warningLogger(message, true, true);
             return packages;
         }
-        
 
-        
         foreach (var item in doc.RootElement.EnumerateObject())
         {
             foreach (JsonParseData jsonParseData in parseData)
@@ -95,7 +93,7 @@ public static class ParsersHelpers
                     {
                         foreach (var prop in item.Value.EnumerateObject())
                         {
-                            packages.Add(new ItemData(new string[] { prop.Name, prop.Value.ToString() }));
+                            packages.Add(new ItemData(new string[] { prop.Name }));
                         }
                     }
                 }
@@ -114,7 +112,13 @@ public static class ParsersHelpers
                 if (str.Contains(dockerfileParseData.instruction))
                 {
                     string[] words = str.Split();
-                    packages.Add(new ItemData(new string[] { words[1] }));
+                    string package = words[1];
+                    int pos = package.IndexOf(":");
+                    if (pos > -1)
+                    {
+                        package = package.Substring(0, pos);
+                    }
+                    packages.Add(new ItemData(new string[] { package }));
                 }
             }
         }

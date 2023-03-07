@@ -38,7 +38,7 @@ namespace ParsingPackages.Statistics
                 Console.WriteLine($"Total files = {packagesFiles.Count}");
 
                 List<GroupStatisticData> projectStatistics = getProjectPackagesStatistic(packagesFiles);
-                pakagesStatistic = unionStatistics(pakagesStatistic, projectStatistics);
+                pakagesStatistic = unionStatistics(pakagesStatistic, projectStatistics, projectDirectory);
             }
             return pakagesStatistic;
         }
@@ -59,7 +59,7 @@ namespace ParsingPackages.Statistics
                 project.repositories = repositories;
 
                 List<GroupStatisticData> projectStatistics = await getProjectPackagesStatistic(accessConfig, project);
-                pakagesStatistic = unionStatistics(pakagesStatistic, projectStatistics);
+                pakagesStatistic = unionStatistics(pakagesStatistic, projectStatistics, project.projectId);
 
                 //int waitBestTime = 3000;
                 //Console.WriteLine($" --- Отдыхаем {waitBestTime} сек. ---");
@@ -69,10 +69,18 @@ namespace ParsingPackages.Statistics
             return pakagesStatistic;
         }
 
-        private List<GroupStatisticData> unionStatistics(List<GroupStatisticData> pakagesStatistic, List<GroupStatisticData> projectStatistics)
+        private List<GroupStatisticData> unionStatistics(List<GroupStatisticData> pakagesStatistic, 
+            List<GroupStatisticData> projectStatistics, string projectName)
         {
             if (pakagesStatistic == null || pakagesStatistic.Count == 0)
             {
+                foreach (GroupStatisticData projectStat in projectStatistics)
+                {
+                    foreach (ItemStatisticData projectItem in projectStat.items)
+                    {
+                        projectItem.data.projects.Add(projectName);
+                    }
+                }
                 return projectStatistics;
             }
 
@@ -91,11 +99,13 @@ namespace ParsingPackages.Statistics
 
                             if (item == null)
                             {
+                                projectItem.data.projects.Add(projectName);
                                 packagesStat.items.Add(new ItemStatisticData(projectItem.data, projectItem.total));
                             }
                             else
                             {
                                 item.total += projectItem.total;
+                                item.data.projects.Add(projectName);
                             }
                         }
                     }
@@ -121,6 +131,12 @@ namespace ParsingPackages.Statistics
             return pakagesStatistic;
         }
 
+        /// <summary>
+        /// Получение использования сторонних решений (пакетов) в конкретном проекте
+        /// </summary>
+        /// <param name="accessConfig">конфигурация доступа в Azure DevOps</param>
+        /// <param name="project">параметры проекта в Azure DevOps</param>
+        /// <returns>Список с наименованиями пакетов и частотой их использования</returns>
         async public Task<List<GroupStatisticData>> getProjectPackagesStatistic(AccessConfig accessConfig, AzureDevOpsProject project)
         {
             List<GroupStatisticData> pakagesStatistic = new List<GroupStatisticData>();
@@ -140,90 +156,5 @@ namespace ParsingPackages.Statistics
             }
             return pakagesStatistic;
         }
-
-        public void show(List<GroupStatisticData> pakagesStatistic) 
-        {
-            Console.WriteLine(" - - - Pakages Statistic - - - \n");
-            foreach (GroupStatisticData group in pakagesStatistic) 
-            {
-                string fileTypes = group.groupExtensions[0];
-                for (int i = 1; i < group.groupExtensions.Length; i++)
-                {
-                    fileTypes+= " " + group.groupExtensions[i];
-                }
-                Console.WriteLine(" - " + group.groupName+ " (" + fileTypes + ")");
-                if (group.items != null && group.items.Count > 0)
-                {
-                    group.items.Sort(delegate (ItemStatisticData x, ItemStatisticData y)
-                    {
-                        if (x.total == y.total)
-                        {
-                            return x.data.values[0].CompareTo(y.data.values[0]);
-                        }
-                        else
-                        {
-                            return x.total < y.total ? 1 : -1;
-                        }
-                        
-                    });
-
-                    for (int i = 0; i < group.items.Count; i++)
-                    {
-                        string packageData = group.items[i].data.values[0];
-                        for (int j = 1; j < group.items[i].data.values.Length; j++)
-                        {
-                            packageData += " " + group.items[i].data.values[j];
-                        }
-                        Console.WriteLine($"{group.items[i].total, 5:G} used: " + packageData);
-                    }
-                }
-                Console.WriteLine();
-            }
-        }
-
-        public void writeToFile(string pathFile, List<GroupStatisticData> pakagesStatistic) 
-        {
-            using (StreamWriter file = File.CreateText(pathFile)) { 
-
-            file.WriteLine(" - - - Pakages Statistic - - - \n");
-            foreach (GroupStatisticData group in pakagesStatistic)
-            {
-                string fileTypes = group.groupExtensions[0];
-                for (int i = 1; i < group.groupExtensions.Length; i++)
-                {
-                    fileTypes += " " + group.groupExtensions[i];
-                }
-                file.WriteLine(" - " + group.groupName + " (" + fileTypes + ")");
-                if (group.items != null && group.items.Count > 0)
-                {
-                    group.items.Sort(delegate (ItemStatisticData x, ItemStatisticData y)
-                    {
-                        if (x.total == y.total)
-                        {
-                            return x.data.values[0].CompareTo(y.data.values[0]);
-                        }
-                        else
-                        {
-                            return x.total < y.total ? 1 : -1;
-                        }
-
-                    });
-
-                    for (int i = 0; i < group.items.Count; i++)
-                    {
-                        string packageData = group.items[i].data.values[0];
-                        for (int j = 1; j < group.items[i].data.values.Length; j++)
-                        {
-                            packageData += " " + group.items[i].data.values[j];
-                        }
-                        file.WriteLine($"{group.items[i].total,5:G} used: " + packageData);
-                    }
-                }
-                file.WriteLine();
-            }
-            }
-            Console.WriteLine($"Statistic data was wrote to '{pathFile}'");
-        } 
-
     }
 }
