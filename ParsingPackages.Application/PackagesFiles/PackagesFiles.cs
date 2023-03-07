@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace ParsingPackages.SourceData
+﻿
+namespace ParsingPackages.Application.PackagesFiles
 {
     public class PackagesFiles
     {

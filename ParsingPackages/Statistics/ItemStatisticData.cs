@@ -7,7 +7,7 @@ namespace ParsingPackages.Statistics
     public class ItemStatisticData
     {
         /// <summary>
-        /// Данные по пакету в виде { "значение атрибута 1", "значение атрибута 2", ...}
+        /// Статистистические данные по пакету с набором считанных значений
         /// </summary>
         public ItemData data { get; set; }
         public int total { get; set; }

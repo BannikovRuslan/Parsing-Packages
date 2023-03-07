@@ -4,6 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ParsingPackages.Statistics
 {
+    /// <summary>
+    /// Класс для хранения набора считанных значений
+    /// </summary>
     public class ItemData: IEquatable<ItemData>
     {
         public string[] values { get; set; }
@@ -44,10 +47,11 @@ namespace ParsingPackages.Statistics
 
     public class ItemDataComparer : IEqualityComparer<ItemData>
     {
-        public bool Equals(ItemData x, ItemData y)
+        public bool Equals(ItemData? x, ItemData? y)
         {
             //Check whether the compared object is null.
             if (Object.ReferenceEquals(x, null)) return false;
+            if (Object.ReferenceEquals(y, null)) return false;
             //Check whether the compared object references the same data.
             if (Object.ReferenceEquals(x, y)) return true;
 

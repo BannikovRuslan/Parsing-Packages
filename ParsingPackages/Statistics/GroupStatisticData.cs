@@ -1,6 +1,8 @@
-﻿using ParsingPackages.SourceData;
+﻿using ParsingPackages.Application.PackagesFiles;
+using ParsingPackages.Logging;
+using ParsingPackages.Persistence.AzureDevOps;
 using ParsingPackages.Utils;
-using System.Collections.Generic;
+
 
 namespace ParsingPackages.Statistics
 {
@@ -10,6 +12,8 @@ namespace ParsingPackages.Statistics
         { 
             new XmlParseData("Reference", new string[] { "Include" }),
             new XmlParseData("PackageReference", new string[] { "Include" }),
+            new XmlParseData("Reference", new string[] { "Update" }),
+            new XmlParseData("PackageReference", new string[] { "Update" }),
         };
 
         private List<XmlParseData> PACKAGES_CONFIG_PARSE_DATA { get; set; } = new List<XmlParseData>()
@@ -29,72 +33,96 @@ namespace ParsingPackages.Statistics
             new DockerfileParseData("FROM"),
         };
 
-        public string groupName { get; set; }
-        public string[] groupExtensions { get; set; }
+        public string? groupName { get; set; }
+        public string[] groupExtensions { get; set; } = { };
         public List<ItemStatisticData> items { get; set; } = new List<ItemStatisticData>();
 
-        public void updateProjectStatistic(string filePath) 
+        public void updateProjectFileStatistic(string filePath) 
+        {
+            if (filePath is null)
+            {
+                throw new ArgumentNullException(nameof(filePath));
+            }
+            
+            string fileData = File.ReadAllText(filePath);
+            updateGroupsStatistic(filePath, fileData);
+        }
+
+        async public Task updateProjectFileStatistic(string filePath,
+            AccessConfig accessConfig, string projectId, string repositoryId, string objectId) 
+        {
+            string fileData = await new Requests(accessConfig).GetFile(projectId, repositoryId, objectId);
+            if (fileData.Length == 0) {
+                string message = "<updateProjectFileStatistic> -> Данные не были получены!\n"+
+                                 "Информация по запросу:\n"+
+                                 $"\tФайл: {filePath}\n"+
+                                 $"\tПроект: {projectId}\n"+
+                                 $"\tРепозиторий: {repositoryId}\n"+
+                                 $"\tИдентификатор файла: {objectId}\n";
+                new Logger().warningLogger(message, true, true);
+                return;
+            }
+            updateGroupsStatistic(filePath, fileData);
+        }
+
+        private void updateGroupsStatistic(string filePath, string fileData) 
         {
             foreach (string groupExtension in groupExtensions)
             {
                 switch (groupExtension)
                 {
                     case "csproj":
-                        if (PackagesFiles.isCprojFile(filePath)) 
+                        if (PackagesFiles.isCprojFile(filePath))
                         {
-                            initProjectGroupStatistic(getProjectNuGetPackages(filePath, CSPROJ_PARSE_DATA));
-                        }                   
+                            initProjectGroupStatistic(getProjectNuGetPackages(fileData, CSPROJ_PARSE_DATA));
+                        }
                         break;
                     case "packages.config":
                         if (PackagesFiles.isPackagesConfigFile(filePath))
                         {
-                            initProjectGroupStatistic(getProjectNuGetPackages(filePath, PACKAGES_CONFIG_PARSE_DATA));
+                            initProjectGroupStatistic(getProjectNuGetPackages(fileData, PACKAGES_CONFIG_PARSE_DATA));
                         }
                         break;
                     case "pacakge.json":
                         if (PackagesFiles.isPackageJsonFile(filePath))
                         {
-                            initProjectGroupStatistic(getProjectNpmPackagesStatistic(filePath, PACKAGES_JSON_PARSE_DATA));
+                            initProjectGroupStatistic(getProjectNpmPackagesStatistic(fileData, PACKAGES_JSON_PARSE_DATA));
                         }
                         break;
                     case "Dockerfile":
                         if (PackagesFiles.isDockerFile(filePath))
                         {
-                            initProjectGroupStatistic(getProjectDockerPackagesStatistic(filePath, DOCKERFILE_PARSE_DATA));
+                            initProjectGroupStatistic(getProjectDockerPackagesStatistic(fileData, DOCKERFILE_PARSE_DATA));
                         }
                         break;
                     default:
                         break;
                 }
-            } 
-
+            }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="filePath"></param>
-        private List<ItemData> getProjectNuGetPackages(string filePath, List<XmlParseData> parseData)
+
+        private List<ItemData> getProjectNuGetPackages(string fileData, List<XmlParseData> parseData)
         {
-            return FileParsersHelpers.xmlParser(filePath, parseData);
+            return ParsersHelpers.xmlParser(fileData, parseData);
         }
 
-        private List<ItemData> getProjectNpmPackagesStatistic(string filePath, List<JsonParseData> parseData) 
+        private List<ItemData> getProjectNpmPackagesStatistic(string fileData, List<JsonParseData> parseData) 
         {
-            return FileParsersHelpers.jsonParser(filePath, parseData);
+            return ParsersHelpers.jsonParser(fileData, parseData);
         }
 
-        private List<ItemData> getProjectDockerPackagesStatistic(string filePath, List<DockerfileParseData> parseData)
+        private List<ItemData> getProjectDockerPackagesStatistic(string fileData, List<DockerfileParseData> parseData)
         {
-            return FileParsersHelpers.dockerfileParser(filePath, parseData);
+            return ParsersHelpers.dockerfileParser(fileData, parseData);
         }
 
         private void initProjectGroupStatistic(List<ItemData> packagesData)
         {
             foreach (ItemData packageData in packagesData)
             {
-                ItemStatisticData item = null;
-                if (items != null)
+                ItemStatisticData? item = null;
+                if (items.Count > 0)
                 {
                     item = items.Find(item => {
                         return item.data.Equals(packageData);
